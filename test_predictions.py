@@ -20,9 +20,9 @@ def generate_predictions():
     ])
     
     try:
-        model.load_weights('best_ann_model.pkl')
+        model.load_weights('checkpoint_model.pkl')
     except FileNotFoundError:
-        print("Error: 'best_ann_model.pkl' not found. Please run train_modular.py first.")
+        print("Error: 'checkpoint_model.pkl' not found. Please run train_modular.py first.")
         return
     
     print("Generating predictions...")
