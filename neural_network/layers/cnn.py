@@ -2,6 +2,7 @@ from .base import Layer
 import numpy as np
 from scipy import signal
 
+
 class Conv2D(Layer):
     def __init__(self, input_shape, kernel_size, depth):
         super().__init__()
@@ -41,13 +42,15 @@ class Conv2D(Layer):
 
         return input_error
 
+
 class Flatten(Layer):
     def forward(self, input_data):
         self.input_shape = input_data.shape
-        return input_data.reshape(input_data.shape[0], -1).T
+        return input_data.reshape(-1, 1)
 
     def backward(self, output_error):
-        return output_error.T.reshape(self.input_shape)
+        return output_error.reshape(self.input_shape)
+
 
 class MaxPool2D(Layer):
     def __init__(self, pool_size):

@@ -1,24 +1,29 @@
 import numpy as np
 import pickle
 
+
 class Sequential:
     def __init__(self, layers=[], loss=None, optimizer=None):
         self.layers = layers
         self.loss = loss
         self.optimizer = optimizer
 
+
     def add(self, layer):
         self.layers.append(layer)
+
 
     def compile(self, loss, optimizer):
         self.loss = loss
         self.optimizer = optimizer
+
 
     def predict(self, input_data):
         output = input_data
         for layer in self.layers:
             output = layer.forward(output)
         return output
+
 
     def save_weights(self, filepath):
         weights = []
@@ -28,6 +33,7 @@ class Sequential:
             pickle.dump(weights, f)
         print(f"Model weights saved to {filepath}")
 
+
     def load_weights(self, filepath):
         with open(filepath, 'rb') as f:
             weights = pickle.load(f)
@@ -35,45 +41,94 @@ class Sequential:
             layer.params = weights[i]
         print(f"Model weights loaded from {filepath}")
 
-    def train(self, x_train, y_train, epochs, batch_size=32, verbose=True, x_val=None, y_val=None, save_path='checkpoint.pkl'):
-        n_samples = x_train.shape[1]
+
+    def train(self, x_train, y_train, epochs, batch_size=32, verbose=True, x_val=None, y_val=None, save_path=None):
+        # Determine if it's CNN or ANN
+        is_cnn = (x_train.ndim == 4)
+        n_samples = x_train.shape[0] if is_cnn else x_train.shape[1]
+        
+        # Set default save_path based on model type if not provided
+        if save_path is None:
+            from .layers import Conv2D
+            has_cnn = any(isinstance(l, Conv2D) for l in self.layers)
+            save_path = 'cnn_checkpoint.pkl' if has_cnn else 'best_model.pkl'
+
         best_acc = -1
 
         for epoch in range(epochs):
             indices = np.random.permutation(n_samples)
-            x_shuffled = x_train[:, indices]
+            x_shuffled = x_train[indices] if is_cnn else x_train[:, indices]
             y_shuffled = y_train[:, indices]
             
             epoch_loss = 0
             for i in range(0, n_samples, batch_size):
-                x_batch = x_shuffled[:, i:i+batch_size]
+                x_batch = x_shuffled[i:i+batch_size] if is_cnn else x_shuffled[:, i:i+batch_size]
                 y_batch = y_shuffled[:, i:i+batch_size]
                 
-                output = self.predict(x_batch)
-                error = self.loss.backward(y_batch, output)
+                if is_cnn:
+                    batch_loss = 0
+                    accumulated_grads = [ {k: np.zeros_like(v) for k, v in l.params.items()} for l in self.layers ]
+                    
+                    for j in range(x_batch.shape[0]):
+                        sample_x = x_batch[j]
+                        sample_y = y_batch[:, j:j+1]
+                        
+                        output = self.predict(sample_x)
+                        error = self.loss.backward(sample_y, output)
+                        
+                        for l_idx in reversed(range(len(self.layers))):
+                            error = self.layers[l_idx].backward(error)
+                            # Accumulate gradients
+                            for k in self.layers[l_idx].params:
+                                accumulated_grads[l_idx][k] += self.layers[l_idx].grads[k]
+                        
+                        batch_loss += self.loss.forward(sample_y, output)
+                    
+                    # Set the averaged gradients back to layers for the optimizer
+                    for l_idx, layer in enumerate(self.layers):
+                        for k in layer.params:
+                            layer.grads[k] = accumulated_grads[l_idx][k] / x_batch.shape[0]
+                    
+                    epoch_loss += batch_loss / x_batch.shape[0]
+                else:
+                    # Standard ANN batch processing
+                    output = self.predict(x_batch)
+                    error = self.loss.backward(y_batch, output)
+                    for layer in reversed(range(len(self.layers))):
+                        error = self.layers[layer].backward(error)
+                    epoch_loss += self.loss.forward(y_batch, output)
 
-                for layer in reversed(self.layers):
-                    error = layer.backward(error)
-
+                # Update weights once per batch
                 self.optimizer.update(self.layers)
-                
-                epoch_loss += self.loss.forward(y_batch, output)
 
             avg_loss = epoch_loss / (n_samples / batch_size)
             
             val_info = ""
             if x_val is not None and y_val is not None:
-                val_output = self.predict(x_val)
-                # Assuming classification for accuracy
-                predictions = np.argmax(val_output, axis=0)
-                targets = np.argmax(y_val, axis=0)
-                acc = np.sum(predictions == targets) / targets.size
-                val_info = f", val_acc={acc:.4f}"
+                # Handle validation
+                val_acc = self.evaluate(x_val, y_val)
+                val_info = f", val_acc={val_acc:.4f}"
                 
-                if acc > best_acc:
-                    best_acc = acc
+                if val_acc > best_acc:
+                    best_acc = val_acc
                     self.save_weights(save_path)
-                    val_info += " (Best!)"
+                    val_info += " (Best till now)\n"
 
             if verbose:
                 print(f"Epoch {epoch+1}/{epochs}, loss={avg_loss:.4f}{val_info}")
+
+
+    def evaluate(self, x, y):
+        is_cnn = (x.ndim == 4)
+        if is_cnn:
+            predictions = []
+            for i in range(x.shape[0]):
+                pred = self.predict(x[i])
+                predictions.append(np.argmax(pred))
+            targets = np.argmax(y, axis=0)
+            return np.sum(np.array(predictions) == targets) / targets.size
+        else:
+            output = self.predict(x)
+            predictions = np.argmax(output, axis=0)
+            targets = np.argmax(y, axis=0)
+            return np.sum(predictions == targets) / targets.size
