@@ -70,7 +70,7 @@ def train_cnn():
     X_dev_cnn = X_dev.T.reshape(-1, 1, 28, 28)
     
     # Tiny subset for speed
-    train_size, val_size = 100, 20
+    train_size, val_size = 500, 100
     X_train_small = X_train_cnn[:train_size]
     Y_train_small = Y_train[:, :train_size]
     X_dev_small = X_dev_cnn[:val_size]
