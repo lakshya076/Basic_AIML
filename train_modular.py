@@ -5,6 +5,7 @@ from neural_network.layers import Dense, Activation, Conv2D, Flatten, MaxPool2D
 from neural_network.activations import relu, relu_prime, softmax, softmax_prime, sigmoid, sigmoid_prime
 from neural_network.losses import CategoricalCrossEntropy
 from neural_network.optimizers import Adam, SGD
+from preprocessing import train_test_split, plot_confusion_matrix
 
 
 def one_hot(Y):
@@ -56,9 +57,15 @@ def train_ann():
         save_path='checkpoint_model.pkl')
     
     model.load_weights('checkpoint_model.pkl')
-    predictions = model.predict(X_dev)
-    accuracy = np.sum(np.argmax(predictions, axis=0) == np.argmax(Y_dev, axis=0)) / Y_dev.shape[1]
-    print(f"ANN Dev Accuracy: {accuracy}")
+    
+    print("\nANN Final Evaluation:")
+    metrics = model.get_metrics(X_dev, Y_dev)
+    for k, v in metrics.items():
+        if k != "Confusion Matrix":
+            print(f"  {k}: {v:.4f}")
+    
+    print("Displaying ANN Confusion Matrix...")
+    plot_confusion_matrix(np.argmax(Y_dev, axis=0), np.argmax(model.predict(X_dev), axis=0), title='ANN Confusion Matrix')
 
 
 def train_cnn():
@@ -96,8 +103,11 @@ def train_cnn():
     )
     
     model.load_weights('cnn_checkpoint.pkl')
-    accuracy = model.evaluate(X_dev_small, Y_dev_small)
-    print(f"CNN Subset Accuracy: {accuracy}")
+    print("\nCNN Final Evaluation (Subset):")
+    metrics = model.get_metrics(X_dev_small, Y_dev_small)
+    for k, v in metrics.items():
+        if k != "Confusion Matrix":
+            print(f"  {k}: {v:.4f}")
 
 
 if __name__ == "__main__":
