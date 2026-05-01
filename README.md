@@ -15,18 +15,58 @@ A modular and extensible deep learning framework built entirely from scratch usi
 - **Numerical Stability:** Stabilized Softmax and clipped Cross-Entropy implementations to prevent `NaN` or `inf` errors.
 - **Automatic Checkpoints:** Automatically saves the best-performing model state based on validation accuracy during training.
 
-## Project Structure
+- **Regression Support:**
+  - `LinearRegression`: Standard regression using MSE.
+  - `LogisticRegression`: Binary classification using Binary Cross Entropy.
+- **Standardized Modules:** Optimizers and loss functions are shared between Neural Networks and Regression models for consistency.
+
+## 📂 Project Structure
 
 ```text
-neural_network/
+nn/
 ├── model.py            # Main Sequential model logic
 ├── layers/             # Dense, Conv2D, MaxPool2D, Flatten, Activation
 ├── activations/        # ReLU, Sigmoid, Tanh, Softmax
 ├── losses/             # MSE, CategoricalCrossEntropy, BinaryCrossEntropy
 └── optimizers/         # SGD, Adam
+
+regression/
+├── linear.py           # Linear Regression implementation
+└── logistic.py         # Logistic Regression implementation
+
+preprocessing/
+├── __init__.py
+├── data.py             # train_test_split implementation
+└── metrics.py          # Accuracy, Precision, Recall, Confusion Matrix
 ```
 
-## Architecture
+## 📊 Datasets
+
+The following datasets are used to train and evaluate the models in this project:
+
+| Model Type | Dataset Name | File Path |
+| :--- | :--- | :--- |
+| **ANN / CNN** | MNIST Digit Recognizer | `datasets/nn/train.csv` (Labeled)<br>`datasets/nn/test.csv` (Unlabeled) |
+| **Linear Regression** | Boston Housing Data | `datasets/regression/linear/HousingData.csv` |
+| **Logistic Regression** | Loan Approval Data | `datasets/regression/logistic/loan_data.csv` |
+
+## 📈 Metrics & Evaluation
+
+Each model type calculates specific performance indicators through the `preprocessing/metrics.py` module:
+
+### Regression (Linear)
+
+- **MSE (Mean Squared Error):** Measures the average squared difference between predicted and actual values.
+- **R² Score (Coefficient of Determination):** Represents the proportion of variance for the dependent variable that's explained by the model.
+
+### Classification (Logistic, ANN, CNN)
+
+- **Accuracy:** Overall percentage of correct predictions.
+- **Precision:** Accuracy of positive predictions.
+- **Recall:** Ability of the model to find all positive instances.
+- **Confusion Matrix:** A visual heatmap (generated via Matplotlib) showing True Positives, True Negatives, False Positives, and False Negatives.
+
+## 🏗 Architecture
 
 ### Artificial Neural Network (ANN)
 
@@ -54,7 +94,9 @@ While the framework supports full CNN capabilities, the current implementation u
 - **Bottleneck:** Without GPU acceleration (CUDA) or highly optimized C++ kernels (like `im2col`), spatial convolutions are computationally expensive in Python.
 - **Full Training:** You can train on the full dataset by removing the subset slicing in `train_modular.py`, but expect it to take several hours per epoch.
 
-## How to Use
+## How to Use ANN/CNN
+
+Either run the `main.ipynb` notebook or:
 
 ### 1. Training
 
@@ -76,6 +118,6 @@ python test_predictions.py
 
 This will output `submission.csv`.
 
-## Accuracy
+## How to Use Linear and Logistic Regression
 
-The standard ANN architecture consistently achieves **>97% accuracy** on the MNIST development set within 10 epochs using the Adam optimizer.
+Run the `regression_sample.ipynb` notebook.
