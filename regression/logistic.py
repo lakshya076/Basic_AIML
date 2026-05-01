@@ -33,9 +33,8 @@ class LogisticRegression:
         return (probs >= threshold).astype(int)
 
     def get_metrics(self, X, y):
-        from preprocessing import get_classification_report, confusion_matrix
-        preds_classes = self.predict_classes(X)
-        y = y.reshape(preds_classes.shape)
-        report = get_classification_report(y, preds_classes)
-        report["Confusion Matrix"] = confusion_matrix(y, preds_classes)
-        return report
+        if X.ndim == 1:
+            X = X.reshape(1, -1)
+        if y.ndim == 1:
+            y = y.reshape(1, -1)
+        return self.model.get_metrics(X, y)

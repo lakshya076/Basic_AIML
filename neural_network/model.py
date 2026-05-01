@@ -94,8 +94,8 @@ class Sequential:
                     # Standard ANN batch processing
                     output = self.predict(x_batch)
                     error = self.loss.backward(y_batch, output)
-                    for layer in reversed(range(len(self.layers))):
-                        error = self.layers[layer].backward(error)
+                    for l_idx in reversed(range(len(self.layers))):
+                        error = self.layers[l_idx].backward(error)
                     epoch_loss += self.loss.forward(y_batch, output)
 
                 # Update weights once per batch
@@ -119,6 +119,7 @@ class Sequential:
 
 
     def evaluate(self, x, y):
+        # Keeps existing evaluation for backward compatibility in training loop
         is_cnn = (x.ndim == 4)
         if is_cnn:
             predictions = []
@@ -129,6 +130,52 @@ class Sequential:
             return np.sum(np.array(predictions) == targets) / targets.size
         else:
             output = self.predict(x)
+            # If output is 1 neuron, it might be regression or binary classification
+            if output.shape[0] == 1:
+                # Basic check: if y is only 0/1 it's likely binary class, else regression
+                if np.all(np.isin(y, [0, 1])):
+                    predictions = (output > 0.5).astype(int)
+                    return np.mean(predictions == y)
+                else:
+                    # For regression, evaluate accuracy doesn't make sense, return -MSE
+                    return -np.mean((output - y)**2)
+
             predictions = np.argmax(output, axis=0)
             targets = np.argmax(y, axis=0)
             return np.sum(predictions == targets) / targets.size
+
+
+    def get_metrics(self, x, y):
+        from preprocessing import get_classification_report, confusion_matrix, mean_squared_error, r2_score
+        
+        output = self.predict(x) if x.ndim != 4 else None
+        is_cnn = (x.ndim == 4)
+        
+        # Classification Case
+        # Multi-class (Softmax) or Binary (Sigmoid with 0/1 target)
+        if is_cnn or output.shape[0] > 1 or np.all(np.isin(y, [0, 1])):
+            if is_cnn:
+                predictions = []
+                for i in range(x.shape[0]):
+                    predictions.append(np.argmax(self.predict(x[i])))
+                y_pred = np.array(predictions)
+                y_true = np.argmax(y, axis=0)
+            elif output.shape[0] > 1: # Multi-class ANN
+                y_pred = np.argmax(output, axis=0)
+                y_true = np.argmax(y, axis=0)
+            else: # Binary ANN
+                y_pred = (output > 0.5).astype(int).flatten()
+                y_true = y.flatten().astype(int)
+            
+            report = get_classification_report(y_true, y_pred)
+            report["Confusion Matrix"] = confusion_matrix(y_true, y_pred)
+            return report
+        
+        # Regression Case
+        else:
+            y_true = y.flatten()
+            y_pred = output.flatten()
+            return {
+                "MSE": mean_squared_error(y_true, y_pred),
+                "R2": r2_score(y_true, y_pred)
+            }
