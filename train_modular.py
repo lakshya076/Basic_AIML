@@ -15,7 +15,7 @@ def one_hot(Y):
 
 
 def load_data():
-    df = pd.read_csv("train.csv")
+    df = pd.read_csv("datasets/nn/train.csv")
     data = np.array(df)
     m, n = data.shape
     np.random.shuffle(data)

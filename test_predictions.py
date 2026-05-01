@@ -7,7 +7,7 @@ from neural_network.activations import relu, relu_prime, softmax
 
 def generate_predictions():
     print("Loading test data...")
-    test_df = pd.read_csv("test.csv")
+    test_df = pd.read_csv("datasets/nn/test.csv")
     X_test = np.array(test_df).T / 255.
     
     model = Sequential([
