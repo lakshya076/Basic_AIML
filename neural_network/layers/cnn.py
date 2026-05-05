@@ -4,7 +4,7 @@ from scipy import signal
 
 
 class Conv2D(Layer):
-    def __init__(self, input_shape, kernel_size, depth):
+    def __init__(self, input_shape, kernel_size, depth, initializer='random'):
         super().__init__()
         input_depth, input_height, input_width = input_shape
         self.depth = depth
@@ -13,9 +13,20 @@ class Conv2D(Layer):
         self.output_shape = (depth, input_height - kernel_size + 1, input_width - kernel_size + 1)
         self.kernels_shape = (depth, input_depth, kernel_size, kernel_size)
         
+        fan_in = input_depth * kernel_size * kernel_size
+        fan_out = depth * kernel_size * kernel_size
+
+        if initializer == 'xavier':
+            limit = np.sqrt(6 / (fan_in + fan_out))
+            k = np.random.uniform(-limit, limit, self.kernels_shape)
+        elif initializer == 'he':
+            k = np.random.randn(*self.kernels_shape) * np.sqrt(2 / fan_in)
+        else: # Default random
+            k = np.random.randn(*self.kernels_shape) * 0.1
+
         self.params = {
-            'K': np.random.randn(*self.kernels_shape) * 0.1,
-            'b': np.random.randn(depth, *self.output_shape[1:]) * 0.1
+            'K': k,
+            'b': np.zeros((depth, *self.output_shape[1:]))
         }
         self.grads = {
             'K': np.zeros(self.kernels_shape),

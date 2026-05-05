@@ -2,10 +2,19 @@ from .base import Layer
 import numpy as np
 
 class Dense(Layer):
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, initializer='random'):
         super().__init__()
+        
+        if initializer == 'xavier':
+            limit = np.sqrt(6 / (input_size + output_size))
+            w = np.random.uniform(-limit, limit, (output_size, input_size))
+        elif initializer == 'he':
+            w = np.random.randn(output_size, input_size) * np.sqrt(2 / input_size)
+        else: # Default random
+            w = np.random.randn(output_size, input_size) * 0.01
+
         self.params = {
-            'W': np.random.randn(output_size, input_size) * 0.01,
+            'W': w,
             'b': np.zeros((output_size, 1))
         }
         self.grads = {

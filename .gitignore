@@ -210,3 +210,4 @@ __marimo__/
 # custom
 *.pkl
 submission.csv
+research/*.png

@@ -54,6 +54,7 @@ class Sequential:
             save_path = 'cnn_checkpoint.pkl' if has_cnn else 'best_model.pkl'
 
         best_acc = -1
+        history = {'loss': [], 'val_acc': []}
 
         for epoch in range(epochs):
             indices = np.random.permutation(n_samples)
@@ -102,11 +103,13 @@ class Sequential:
                 self.optimizer.update(self.layers)
 
             avg_loss = epoch_loss / (n_samples / batch_size)
+            history['loss'].append(avg_loss)
             
             val_info = ""
             if x_val is not None and y_val is not None:
                 # Handle validation
                 val_acc = self.evaluate(x_val, y_val)
+                history['val_acc'].append(val_acc)
                 val_info = f", val_acc={val_acc:.4f}"
                 
                 if val_acc > best_acc:
@@ -116,6 +119,8 @@ class Sequential:
 
             if verbose:
                 print(f"Epoch {epoch+1}/{epochs}, loss={avg_loss:.4f}{val_info}")
+        
+        return history
 
 
     def evaluate(self, x, y):
